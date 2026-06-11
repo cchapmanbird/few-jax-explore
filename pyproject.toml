@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68", "wheel", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fewjaxstudy"
+description = "testing"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Christian Chapman-Bird" }]
+
+dynamic = [
+    "version"
+]
