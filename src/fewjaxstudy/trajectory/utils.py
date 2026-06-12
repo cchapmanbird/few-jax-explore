@@ -2,10 +2,10 @@
 Elliptic function routines written in jax format
 """
 
+from .mappings import get_separatrix
 import jax.numpy as jnp
 import jax
 from jax import jit
-from .mappings import get_separatrix
 
 @jax.jit
 def rc_body_fun(i, args):
@@ -340,8 +340,8 @@ def _d(r, a, zm):
 
 @jit
 def pedot_PN(a, p, e, x):
-    risco = sep_analytic(a, 0.0, x)
-    p_sep = sep_analytic(a, e, x)
+    risco = get_separatrix(a, 0.0, x)
+    p_sep = get_separatrix(a, e, x)
 
     pdot = (8.0 * (1.0 - (e * e))** 1.5 * (8.0 + 7.0 * (e * e))) / (
         5.0 * p * (((p - risco) * (p - risco)) - ((-risco + p_sep) * (-risco + p_sep)))
@@ -444,9 +444,3 @@ def _KerrGeoEquatorialMinoFrequencies(a, p, e, x):
 def KerrGeoEquatorialCoordinateFrequencies(a, p, e, x):
     Gamma, UpsilonPhi, UpsilonR = _KerrGeoEquatorialMinoFrequencies(a, p, e, x)
     return jnp.asarray([UpsilonPhi / Gamma, UpsilonR / Gamma])
-
-KGECF_FirstDerivatives = jax.jacobian(KerrGeoEquatorialCoordinateFrequencies, argnums=(1,2))
-KGECF_SecondDerivatives = jax.jacobian(KGECF_FirstDerivatives, argnums=(1,2))
-
-KGECF_FirstDerivatives = jax.vmap(KGECF_FirstDerivatives, in_axes=(0, 0, 0, 0), out_axes=1)
-KGECF_SecondDerivatives = jax.vmap(KGECF_SecondDerivatives, in_axes=(0, 0, 0, 0), out_axes=1)
