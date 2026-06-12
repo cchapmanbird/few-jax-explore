@@ -11,9 +11,9 @@ from few.utils.constants import MTSUN_SI, YRSID_SI
 import jax
 import jax.numpy as jnp
 from interpax import Interpolator3D
-from .mappings import sep_analytic, uwz_of_ape
+from .mappings import get_separatrix, uwz_of_ape
 from optimistix import Newton, Bisection
-from diffrax import Event, Dopri8, SaveAt, PIDController, ODETerm, diffeqsolve
+from diffrax import Event, Dopri8, SaveAt, PIDController, ODETerm, diffeqsolve, Solution
 
 
 regionA = h5py.File(few.get_file_manager().get_file("KerrEccEqFluxData.h5"))["regionA"]
@@ -74,15 +74,8 @@ def cond_fn(t, y, args, **kwargs):
     p, e = y[:2]
     a, = args
 
-    psep = sep_analytic(a, e, 1.)
+    psep = get_separatrix(a, e, 1.)
 
-    return p < (psep + 2e-3)
-
-def cond_fn_nojit(t, y, args, **kwargs):
-    p, e = y[:2]
-    a = args
-
-    psep = sep_analytic(a, e, 1.)
     return p < (psep + 2e-3)
     
 # stop = Event(cond_fn, root_finder=Bisection(rtol=0, atol=1e-10, flip=True))
@@ -105,10 +98,10 @@ def RHS(t, y, args):
 
 term = ODETerm(RHS)
 solver = Dopri8()
-saveat = SaveAt(steps=True, dense=True)
+saveat = SaveAt(t0=True, steps=True, dense=True)
 stepsize_controller = PIDController(rtol=1e-10,atol=1e-10)
 
-def solve_dynamics(m1, m2, a, p0, e0, T):
+def solve_dynamics(m1: float, m2: float, a: float, p0: float, e0: float, T: float) -> Solution:
     M = m1 + m2
     Msec = M * MTSUN_SI
     M = m1 + m2
@@ -117,5 +110,5 @@ def solve_dynamics(m1, m2, a, p0, e0, T):
     T_in = T * YRSID_SI / Msec * nu  # in seconds
 
     sol = diffeqsolve(term, solver, t0=0, t1=T_in, dt0=None, y0=jnp.asarray([p0, e0, 0., 0.]), saveat=saveat,
-                    stepsize_controller=stepsize_controller, args=(a, ), event=stop, throw=False)
+                    stepsize_controller=stepsize_controller, args=(a, ), event=stop, throw=True, max_steps=256)
     return sol

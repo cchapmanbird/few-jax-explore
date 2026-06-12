@@ -5,7 +5,7 @@ Elliptic function routines written in jax format
 import jax.numpy as jnp
 import jax
 from jax import jit
-from .mappings import sep_analytic
+from .mappings import get_separatrix
 
 @jax.jit
 def rc_body_fun(i, args):

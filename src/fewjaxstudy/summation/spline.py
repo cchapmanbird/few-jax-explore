@@ -25,9 +25,9 @@ def build_interp_grid_variable(x: Array, y: Array, len: int, maxlen: int) -> tup
     """
     diag = jnp.full(maxlen, 1.0)
     ud = jnp.full(maxlen - 1, 0.0)
-    ld = jnp.full(maxlen - 1, 0.0)
+    ld = jnp.full(maxlen - 1, 0.0, )
 
-    b = jnp.full(maxlen , 0.0)
+    b = jnp.full(maxlen , 0.0, dtype=y.dtype)
 
     dx = jnp.diff(x)
     slope = jnp.diff(y) / dx
@@ -59,6 +59,11 @@ def build_interp_grid_variable(x: Array, y: Array, len: int, maxlen: int) -> tup
 
     b = jnp.where(jnp.arange(maxlen) < len, b, 0.0)
 
+    # cast diagonals to the same dtype as b to avoid dtype issues in the linear solve
+    diag = diag.astype(b.dtype)
+    ud = ud.astype(b.dtype)
+    ld = ld.astype(b.dtype)
+
     return diag, ud, ld, b
 
 @partial(jax.jit, static_argnums=(3,))
@@ -82,7 +87,7 @@ def get_spline_coefficients_variable(x: Array, y: Array, len: int, maxlen: int) 
 
     dydx = lx.linear_solve(tridiag_operator, b, solver=lx.Tridiagonal()).value
 
-    coefficients = jnp.full((maxlen, 4), jnp.nan)
+    coefficients = jnp.full((maxlen, 4), jnp.nan, dtype=y.dtype)
 
     dx = jnp.diff(x)
     slope = jnp.diff(y) / dx
