@@ -141,9 +141,11 @@ for l in range(2, L_MAX):
 
 INDEX_TABLE = jnp.array(index_table)
 
-@jax.jit
-def SpinWeightedSphericalHarmonic(l, m, theta, phi):
+def SpinWeightedSphericalHarmonic(l: int, m: int, theta: float, phi: float) -> complex:
+    """
+    Compute the spin-weighted spherical harmonic Y_{l,m}(theta, phi) for given l, m, theta, and phi.
+    The function uses a table of spherical harmonic expressions for l=2 to l=10 and m=-l to m=l.
+    Inputs outside of these indices will be clipped to the nearest valid index.
+    """
     index = INDEX_TABLE[l, m + L_MAX]
-    temp = jax.lax.switch(index, branches, theta, phi)
-    parity = jnp.pow(-1.0, l)
-    return parity * temp
+    return jax.lax.switch(index, branches, theta, phi)
