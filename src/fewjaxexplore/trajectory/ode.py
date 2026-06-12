@@ -9,11 +9,11 @@ from ..constants import MTSUN_SI, YRSID_SI
 
 import jax
 import jax.numpy as jnp
-from interpax import Interpolator3D
 from .mappings import get_separatrix, uwz_of_ape
 from optimistix import Newton
 from diffrax import Event, Dopri8, SaveAt, PIDController, ODETerm, diffeqsolve, Solution, AbstractAdaptiveSolver
-
+from multispline.spline import TricubicSpline
+from .spline import get_interpolant_for_coefficients
 
 def cond_fn(t, y, args, **kwargs):
     p, e = y[:2]
@@ -81,8 +81,17 @@ def get_trajectory_generator(
     pdot = out_pdot_edot[:, 0].reshape(u.size, w.size, z.size)
     edot = out_pdot_edot[:, 1].reshape(u.size, w.size, z.size)
 
-    pdot_intepr = Interpolator3D(u, w, z, pdot, method="cubic2")
-    edot_intepr = Interpolator3D(u, w, z, edot, method="cubic2")
+    multispline_pdot = TricubicSpline(u, w, z, pdot)
+    coefficients = jnp.asarray(multispline_pdot.coefficients.reshape(u.size - 1, w.size - 1, z.size - 1, 4, 4, 4))
+    pdot_interp = get_interpolant_for_coefficients(
+        u[1] - u[0], w[1] - w[0], z[1] - z[0], coefficients
+    )
+
+    multispline_edot = TricubicSpline(u, w, z, edot)
+    coefficients_edot = jnp.asarray(multispline_edot.coefficients.reshape(u.size - 1, w.size - 1, z.size - 1, 4, 4, 4))
+    edot_interp = get_interpolant_for_coefficients(
+        u[1] - u[0], w[1] - w[0], z[1] - z[0], coefficients_edot
+    )
 
     @jax.jit
     def RHS(t, y, args):
@@ -90,8 +99,8 @@ def get_trajectory_generator(
         p, e = y[:2]
         u, w, z = uwz_of_ape(a, p, e)
 
-        pdot = -pdot_intepr(u, w, z)
-        edot = -edot_intepr(u, w, z)
+        pdot = -pdot_interp(u, w, z)
+        edot = -edot_interp(u, w, z)
 
         Omega_phi, Omega_r = KerrGeoEquatorialCoordinateFrequencies(a, p, e, 1.)
 
