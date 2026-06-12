@@ -1,4 +1,3 @@
-import few
 import h5py
 
 import numpy as np
@@ -6,16 +5,14 @@ from .utils import KerrGeoEquatorialCoordinateFrequencies
 
 from few.utils.mappings.kerrecceq import apex_of_uwyz
 from few.utils.mappings.jacobian import ELdot_to_PEdot_Jacobian
-from few.utils.constants import MTSUN_SI, YRSID_SI
+from ..constants import MTSUN_SI, YRSID_SI
 
 import jax
 import jax.numpy as jnp
 from interpax import Interpolator3D
 from .mappings import get_separatrix, uwz_of_ape
-from optimistix import Newton, Bisection
+from optimistix import Newton
 from diffrax import Event, Dopri8, SaveAt, PIDController, ODETerm, diffeqsolve, Solution, AbstractAdaptiveSolver
-
-
 
 
 def cond_fn(t, y, args, **kwargs):
@@ -26,11 +23,7 @@ def cond_fn(t, y, args, **kwargs):
 
     return p < (psep + 2e-3)
     
-# stop = Event(cond_fn, root_finder=Bisection(rtol=0, atol=1e-10, flip=True))
-    
 stop = Event(cond_fn, root_finder=Newton(rtol=0, atol=1e-10))
-
-
 
 def get_trajectory_generator(
         filepath: str, 
