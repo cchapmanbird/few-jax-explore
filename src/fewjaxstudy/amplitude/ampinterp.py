@@ -1,9 +1,7 @@
-from jax import Array
-import jax
+from jax import Array, vmap
 import jax.numpy as jnp
 from .mappings import uwz_of_ape_amp
 from interpax import interp3d
-import os
 
 L_MAX = 5
 N_MAX = 55
@@ -28,11 +26,14 @@ yv = jnp.linspace(0, 1, 33)
 zv = jnp.linspace(0, 1, 33)
 
 def get_amplitude_interpolant(filepath: str):
+    """
+    Load in data and return a function that takes in (a, p, e) and (l,m,n) arrays and returns the interpolated amplitudes.
+    """
     data = jnp.load(filepath)
     def amplitude_interpolant(a: Array, p: Array, e: Array, l_modes: Array, m_modes: Array, n_modes: Array) -> Array:
         u, w, z = uwz_of_ape_amp(a, p, e)
         indices = jnp.atleast_1d(index_table[l_modes, m_modes + L_MAX, n_modes + N_MAX])
         targets = jnp.atleast_1d(data[indices]) 
-        amps = jax.vmap(lambda target: interp3d(u, w, z, xv, yv, zv, target, method="cubic2"))(targets)
+        amps = vmap(lambda target: interp3d(u, w, z, xv, yv, zv, target, method="cubic2"))(targets)
         return amps
     return amplitude_interpolant

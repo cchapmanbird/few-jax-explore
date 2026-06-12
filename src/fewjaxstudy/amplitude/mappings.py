@@ -1,5 +1,4 @@
 import jax.numpy as jnp
-import jax
 from ..trajectory.mappings import get_separatrix
 
 XMIN = 0.05
