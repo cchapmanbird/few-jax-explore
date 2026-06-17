@@ -213,6 +213,11 @@ def get_separatrix(a: float, e: float, x: float) -> Array:
     N.B. the default tolerances need some tuning / rescaling for accuracy in generic.
     """
 #     # Detect invalid inputs
+
+    av = jnp.abs(a)
+    x = x * jnp.sign(a)
+    a = av
+
     any_nan = jnp.isnan(a) | jnp.isnan(e) | jnp.isnan(x)
     any_inf = jnp.isinf(a) | jnp.isinf(e) | jnp.isinf(x)
     any_invalid = any_nan | any_inf
@@ -234,7 +239,7 @@ def get_separatrix(a: float, e: float, x: float) -> Array:
                 x_lo = 1.0 + e
                 x_hi = 6.0 + 2.0 * e
 
-                solver = Bisection(rtol=1e-12, atol=1e-12)
+                solver = Bisection(rtol=1e-10, atol=1e-10)
 
                 return root_find(
                     _separatrix_polynomial_equat,
@@ -249,8 +254,8 @@ def get_separatrix(a: float, e: float, x: float) -> Array:
                 x_hi = 5.0 + e + 4.0 * jnp.sqrt(1.0 + e)
 
                 solver = Bisection(
-                    rtol=1e-12,
-                    atol=1e-12,
+                    rtol=1e-10,
+                    atol=1e-10,
                 )
 
                 return root_find(
@@ -337,7 +342,8 @@ def get_separatrix(a: float, e: float, x: float) -> Array:
         return lax.cond(
             is_equat,
             equatorial,
-            generic,
+            # generic,
+            equatorial,
             a,
             e,
             x
