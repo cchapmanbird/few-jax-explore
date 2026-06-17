@@ -2,10 +2,19 @@
 Elliptic function routines written in jax format
 """
 
-from .mappings import get_separatrix
+from .mappings import get_separatrix, uwz_of_ape
 import jax.numpy as jnp
 import jax
 from jax import jit
+
+def _pdot_PN(p, e, r_isco, p_sep):
+    """Leading-order ṗ PN factor (JAX, ODE runtime)."""
+    return 8.0 * (1.0 - e ** 2) ** 1.5 * (8.0 + 7.0 * e ** 2) / (5.0 * p * ((p - r_isco) ** 2 - (p_sep - r_isco) ** 2))
+
+
+def _edot_PN(p, e, r_isco, p_sep):
+    """Leading-order ė PN factor (JAX, ODE runtime)."""
+    return  (1.0 - e ** 2) ** 1.5 * (304.0 + 121.0 * e ** 2) / (15.0 * p ** 2 * ((p - r_isco) ** 2 - (p_sep - r_isco) ** 2))
 
 @jax.jit
 def rc_body_fun(i, args):
@@ -444,3 +453,18 @@ def _KerrGeoEquatorialMinoFrequencies(a, p, e, x):
 def KerrGeoEquatorialCoordinateFrequencies(a, p, e, x):
     Gamma, UpsilonPhi, UpsilonR = _KerrGeoEquatorialMinoFrequencies(a, p, e, x)
     return jnp.asarray([UpsilonPhi / Gamma, UpsilonR / Gamma])
+
+
+def KerrGeoEquatorialCoordinateFrequencyTimeDerivatives(pdot_interp, edot_interp, a, p, e):
+    # chain rule via fluxes
+    risco = get_separatrix(a, 0.0, 1.0)
+    p_sep = get_separatrix(a, e, 1.0)
+    u, w, z = uwz_of_ape(a, p, e)
+    pdot = - pdot_interp(u, w, z) * _pdot_PN(p, e, risco, p_sep)
+    edot = - edot_interp(u, w, z) * _edot_PN(p, e, risco, p_sep)
+
+    (dOmegaphi_dp, dOmegar_dp), (dOmegaphi_de, dOmegar_de) = jax.jacobian(KerrGeoEquatorialCoordinateFrequencies, argnums=(1, 2,))(a, p, e, 1.0)
+
+    dOmegaphi_dt = dOmegaphi_dp * pdot + dOmegaphi_de * edot
+    dOmegar_dt = dOmegar_dp * pdot + dOmegar_de * edot
+    return dOmegaphi_dt, dOmegar_dt
