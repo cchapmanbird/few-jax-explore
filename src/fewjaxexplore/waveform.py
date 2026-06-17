@@ -12,18 +12,17 @@ def construct_amplitude_phase_splines(traj_gen, amp_gen, m1: float, m2: float, a
     Msec = M * MTSUN_SI
     M = m1 + m2
     mu = m1 * m2 / M
-    nu = mu / M
 
     ylms = jax.vmap(SpinWeightedSphericalHarmonic, in_axes=(0, 0, None, None))(l_modes, m_modes, theta, -jnp.pi/2)
     sol = traj_gen(m1, m2, a, p0, e0, Phi_phi0, Phi_r0, T)
     length = sol.stats["num_accepted_steps"]
     MAXLEN = 256 + 1
 
-    t = sol.ts * Msec / nu  # convert back to seconds
+    t = sol.ts * Msec  # convert back to seconds
     p, e, Phi_phi, Phi_r = sol.ys.T
 
     amplitudes = (jax.vmap(amp_gen, in_axes=(None, 0, 0, None, None, None))(a, p, e, l_modes, m_modes, n_modes) * ylms[None, :]).T
-    phases = (Phi_phi[None,:] * m_modes[:, None] + Phi_r[None,:] * n_modes[:, None]) / nu + jnp.unwrap(jnp.angle(amplitudes), axis=-1)
+    phases = (Phi_phi[None,:] * m_modes[:, None] + Phi_r[None,:] * n_modes[:, None]) + jnp.unwrap(jnp.angle(amplitudes), axis=-1)
     amplitudes = jnp.abs(amplitudes) * (mu * MRSUN_SI  / dist / Gpc)
 
     amplitude_coefficients = jax.vmap(get_spline_coefficients_variable, in_axes=(None, 0, None, None))(t, amplitudes, length, MAXLEN)
