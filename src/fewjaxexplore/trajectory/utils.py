@@ -455,13 +455,13 @@ def KerrGeoEquatorialCoordinateFrequencies(a, p, e, x):
     return jnp.asarray([UpsilonPhi / Gamma, UpsilonR / Gamma])
 
 
-def KerrGeoEquatorialCoordinateFrequencyTimeDerivatives(pdot_interp, edot_interp, a, p, e):
+def KerrGeoEquatorialCoordinateFrequencyTimeDerivatives(pdot_interp, edot_interp, a, p, e, nu):
     # chain rule via fluxes
     risco = get_separatrix(a, 0.0, 1.0)
     p_sep = get_separatrix(a, e, 1.0)
     u, w, z = uwz_of_ape(a, p, e)
-    pdot = - pdot_interp(u, w, z) * _pdot_PN(p, e, risco, p_sep)
-    edot = - edot_interp(u, w, z) * _edot_PN(p, e, risco, p_sep)
+    pdot = - pdot_interp(u, w, z) * _pdot_PN(p, e, risco, p_sep) * nu
+    edot = - edot_interp(u, w, z) * _edot_PN(p, e, risco, p_sep) * nu
 
     (dOmegaphi_dp, dOmegar_dp), (dOmegaphi_de, dOmegar_de) = jax.jacobian(KerrGeoEquatorialCoordinateFrequencies, argnums=(1, 2,))(a, p, e, 1.0)
 
